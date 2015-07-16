@@ -403,9 +403,9 @@ static int draw_text(const char *str, int x, int y)
     return y + char_height;
 }
 
-static void android_green(void)
+static void android_blue(void)
 {
-    gr_color(0xa4, 0xc6, 0x39, 255);
+    gr_color(0, 191, 255, 255);
 }
 
 /* returns the last y-offset of where the surface ends */
@@ -432,7 +432,7 @@ static void draw_unknown(struct charger *charger)
     if (charger->surf_unknown) {
         draw_surface_centered(charger, charger->surf_unknown);
     } else {
-        android_green();
+        android_blue();
         y = draw_text("Charging!", -1, -1);
         draw_text("?\?/100", -1, y + 25);
     }
@@ -451,6 +451,30 @@ static void draw_battery(struct charger *charger)
     }
 }
 
+#define STR_LEN    64
+static void draw_capacity(struct charger *charger)
+{
+    char cap_str[STR_LEN];
+    int x, y;
+    int str_len_px;
+    int batt_height = 0;
+    // get height of battery image to draw text below
+    struct animation *batt_anim = charger->batt_anim;
+    struct frame *frame = &batt_anim->frames[batt_anim->cur_frame];
+    if (batt_anim->num_frames != 0) {
+        // nothing else should happen actually
+        batt_height = gr_get_height(frame->surface);
+    }
+
+    snprintf(cap_str, (STR_LEN - 1), "%d%%", charger->batt_anim->capacity);
+    str_len_px = gr_measure(cap_str);
+    x = (gr_fb_width() - str_len_px) / 2;
+    // draw it below the battery image
+    y = (gr_fb_height() + batt_height) / 2 + char_height * 2;
+    android_blue();
+    gr_text(x, y, cap_str, 0);
+}
+
 static void redraw_screen(struct charger *charger)
 {
     struct animation *batt_anim = charger->batt_anim;
@@ -458,10 +482,12 @@ static void redraw_screen(struct charger *charger)
     clear_screen();
 
     /* try to display *something* */
-    if (batt_anim->capacity < 0 || batt_anim->num_frames == 0)
+    if (batt_anim->capacity < 0 || batt_anim->num_frames == 0) {
         draw_unknown(charger);
-    else
+    } else {
         draw_battery(charger);
+        draw_capacity(charger);
+    }
     gr_flip();
 }
 
@@ -652,6 +678,7 @@ static void set_next_key_check(struct charger *charger,
 
 static void process_key(struct charger *charger, int code, int64_t now)
 {
+    struct animation *batt_anim = charger->batt_anim;
     struct key_state *key = &charger->keys[code];
     int64_t next_key_check;
 
@@ -678,8 +705,19 @@ static void process_key(struct charger *charger, int code, int64_t now)
         } else {
             /* if the power key got released, force screen state cycle */
             if (key->pending) {
-                request_suspend(false);
-                kick_animation(charger->batt_anim);
+                if (!batt_anim->run) {
+                    request_suspend(false);
+                    kick_animation(batt_anim);
+                } else {
+                    reset_animation(batt_anim);
+                    charger->next_screen_transition = -1;
+                    #ifdef HEALTHD_FORCE_BACKLIGHT_CONTROL
+                            set_backlight(false);
+                    #endif
+                    gr_fb_blank(true);
+                    if (charger->charger_connected)
+                        request_suspend(true);
+                }
             }
         }
     }
