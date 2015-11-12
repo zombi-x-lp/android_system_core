@@ -7,6 +7,7 @@ int do_domainname(int nargs, char **args);
 int do_enable(int nargs, char **args);
 int do_exec(int nargs, char **args);
 int do_exec_context(int nargs, char **args);
+int do_setcon(int nargs, char **args);
 int do_export(int nargs, char **args);
 int do_export_rc(int nargs, char **args);
 int do_hostname(int nargs, char **args);
@@ -24,6 +25,7 @@ int do_rm(int nargs, char **args);
 int do_rmdir(int nargs, char **args);
 int do_setprop(int nargs, char **args);
 int do_setrlimit(int nargs, char **args);
+int do_setusercryptopolicies(int nargs, char **args);
 int do_start(int nargs, char **args);
 int do_stop(int nargs, char **args);
 int do_swapon_all(int nargs, char **args);
@@ -36,7 +38,7 @@ int do_chown(int nargs, char **args);
 int do_chmod(int nargs, char **args);
 int do_loglevel(int nargs, char **args);
 int do_load_persist_props(int nargs, char **args);
-int do_load_all_props(int nargs, char **args);
+int do_load_system_props(int nargs, char **args);
 int do_verity_load_state(int nargs, char **args);
 int do_verity_update_state(int nargs, char **args);
 int do_wait(int nargs, char **args);
@@ -62,6 +64,7 @@ enum {
     KEYWORD(enable,      COMMAND, 1, do_enable)
     KEYWORD(exec,        COMMAND, 1, do_exec)
     KEYWORD(exec_context,    COMMAND, 2, do_exec_context)
+    KEYWORD(setcon,      COMMAND, 1, do_setcon)
     KEYWORD(export,      COMMAND, 2, do_export)
     KEYWORD(export_rc,   COMMAND, 1, do_export_rc)
     KEYWORD(group,       OPTION,  0, 0)
@@ -72,7 +75,7 @@ enum {
     KEYWORD(installkey,  COMMAND, 1, do_installkey)
     KEYWORD(ioprio,      OPTION,  0, 0)
     KEYWORD(keycodes,    OPTION,  0, 0)
-    KEYWORD(load_all_props,        COMMAND, 0, do_load_all_props)
+    KEYWORD(load_system_props,     COMMAND, 0, do_load_system_props)
     KEYWORD(load_persist_props,    COMMAND, 0, do_load_persist_props)
     KEYWORD(loglevel,    COMMAND, 1, do_loglevel)
     KEYWORD(mkdir,       COMMAND, 1, do_mkdir)
@@ -92,6 +95,7 @@ enum {
     KEYWORD(setenv,      OPTION,  2, 0)
     KEYWORD(setprop,     COMMAND, 2, do_setprop)
     KEYWORD(setrlimit,   COMMAND, 3, do_setrlimit)
+    KEYWORD(setusercryptopolicies,   COMMAND, 1, do_setusercryptopolicies)
     KEYWORD(socket,      OPTION,  0, 0)
     KEYWORD(start,       COMMAND, 1, do_start)
     KEYWORD(stop,        COMMAND, 1, do_stop)
