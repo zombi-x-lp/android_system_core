@@ -47,6 +47,7 @@
 #include "ueventd_parser.h"
 #include "util.h"
 #include "log.h"
+#include "property_service.h"
 
 #define SYSFS_PREFIX    "/sys"
 static const char *firmware_dirs[] = { "/etc/firmware",
@@ -54,6 +55,8 @@ static const char *firmware_dirs[] = { "/etc/firmware",
                                        "/firmware/image" };
 
 extern struct selabel_handle *sehandle;
+
+extern char boot_device[PROP_VALUE_MAX];
 
 static int device_fd = -1;
 
@@ -526,10 +529,10 @@ static char **get_block_device_symlinks(struct uevent *uevent)
         return NULL;
     }
 
-    char **links = (char**) malloc(sizeof(char *) * 4);
+    char **links = (char**) malloc(sizeof(char *) * 6);
     if (!links)
         return NULL;
-    memset(links, 0, sizeof(char *) * 4);
+    memset(links, 0, sizeof(char *) * 6);
 
     INFO("found %s device %s\n", type, device);
 
@@ -544,11 +547,21 @@ static char **get_block_device_symlinks(struct uevent *uevent)
             link_num++;
         else
             links[link_num] = NULL;
+        if (asprintf(&links[link_num], "/dev/block/bootdevice/by-name/%s", p) > 0)
+            link_num++;
+        else
+            links[link_num] = NULL;
+
         free(p);
     }
 
     if (uevent->partition_num >= 0) {
         if (asprintf(&links[link_num], "%s/by-num/p%d", link_path, uevent->partition_num) > 0)
+            link_num++;
+        else
+            links[link_num] = NULL;
+
+        if (asprintf(&links[link_num], "/dev/block/bootdevice/by-num/p%d", uevent->partition_num) > 0)
             link_num++;
         else
             links[link_num] = NULL;
@@ -559,6 +572,11 @@ static char **get_block_device_symlinks(struct uevent *uevent)
         link_num++;
     else
         links[link_num] = NULL;
+
+    if (pdev && boot_device[0] != '\0' && strstr(device, boot_device)) {
+        /* Create bootdevice symlink for platform boot stroage device */
+        make_link_init(link_path, "/dev/block/bootdevice");
+    }
 
     return links;
 }
