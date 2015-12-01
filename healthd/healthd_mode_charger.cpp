@@ -404,9 +404,9 @@ static int draw_text(const char *str, int x, int y)
     return y + char_height;
 }
 
-static void android_blue(void)
+static void android_white(void)
 {
-    gr_color(0, 191, 255, 255);
+    gr_color(255, 255, 255, 255);
 }
 
 /* returns the last y-offset of where the surface ends */
@@ -433,7 +433,7 @@ static void draw_unknown(struct charger *charger)
     if (charger->surf_unknown) {
         draw_surface_centered(charger, charger->surf_unknown);
     } else {
-        android_blue();
+        android_white();
         y = draw_text("Charging!", -1, -1);
         draw_text("?\?/100", -1, y + 25);
     }
@@ -472,7 +472,7 @@ static void draw_capacity(struct charger *charger)
     x = (gr_fb_width() - str_len_px) / 2;
     // draw it below the battery image
     y = (gr_fb_height() + batt_height) / 2 + char_height * 2;
-    android_blue();
+    android_white();
     gr_text(x, y, cap_str, 0);
 }
 
@@ -704,25 +704,23 @@ static void process_key(struct charger *charger, int code, int64_t now)
                  * make sure we wake up at the right-ish time to check
                  */
                 set_next_key_check(charger, key, POWER_ON_KEY_TIME);
-
-               /* Turn on the display and kick animation on power-key press
-                * rather than on key release
-                */
-                kick_animation(charger->batt_anim);
-                request_suspend(false);
             }
         } else {
-            /* if the power key got released, force screen state cycle */
             if (key->pending) {
+                /* If key is pressed when the animation is not running, kick
+                 * the animation and quite suspend; If key is pressed when
+                 * the animation is running, turn off the animation and request
+                 * suspend.
+                 */
                 if (!charger->batt_anim->run) {
+                    kick_animation(batt_anim);
                     request_suspend(false);
-                    kick_animation(charger->batt_anim);
                 } else {
                     reset_animation(charger->batt_anim);
                     charger->next_screen_transition = -1;
-                    #ifdef HEALTHD_FORCE_BACKLIGHT_CONTROL
-                            set_backlight(false);
-                    #endif
+#ifdef HEALTHD_FORCE_BACKLIGHT_CONTROL
+                    set_backlight(false);
+#endif
                     gr_fb_blank(true);
                     if (charger->charger_connected)
                         request_suspend(true);
